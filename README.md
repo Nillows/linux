@@ -1,4 +1,6 @@
-# Here are my custom linux functions and alias' so that I can curl them to any VM I want, whenever I want.
+# Here are my custom linux functions and alias' so that I can curl them to any VM I want, whenever I want with
+
+## 'curl -L https://nillows.github.io/linux/ >> ~/.bashrc'
 
 ## The 'back' function
 Uses a modified 'cd' command to store visited directories in an array and increment a variable to track the array length
