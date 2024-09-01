@@ -3,6 +3,6 @@
 ## 'curl -L https://nillows.github.io/linux/ >> ~/.bashrc'
 
 ## The 'back' function
-Uses a modified 'cd' command to store visited directories in an array and increment a variable to track the array length
+Utilizes a modified 'cd' command to store visited directories in an array and increment a variable to track the array length
 
 Invoked with 'back' to automatically decrement the variable, 'cd' to the penultimate directory in the array, and then truncate the path array.
