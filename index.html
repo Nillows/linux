@@ -8,6 +8,15 @@ alias cl='clear'
 alias ..='cd ..'
 alias bashrc='nano ~/.bashrc'
 alias functions='echo "curl -L https://nillows.github.io/linux/ >> ~/.bashrc && source ~/.bashrc"'
+
+alias vncup='vncserver-virtual :1 -geometry 1280x720'
+alias vncdown='vncserver-virtual -kill :1'
+alias vncstatus='for srv in $(seq 1 10); do \
+  if pgrep -f "Xvnc.*:$srv" > /dev/null; then \
+    echo "VNC server on :$srv is running."; \
+  fi; \
+done'
+
 ####################################### CD NAVIGATION HISTORY VIA 'back'################################### 
 
 # Creates a history array containing directories I have visited
