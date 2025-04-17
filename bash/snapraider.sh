@@ -36,8 +36,8 @@ HDD_PATTERN="HDD*"
 
 # Snapraid configuration options
 SYNC_AFTER_GENERATION=false    # Set to true to execute snapraid sync after config generation
-CHECK_DATE=true                # Check modification dates before generating new config - 'false' always generates a new config
-EXIT_TMUX=true                 # If true, tmux session closes after completion
+CHECK_DATE=true                # Check modification dates before generating new config
+EXIT_TMUX=false                # If true, tmux session closes after completion
 AUTOSAVE_GB=500                # Automatically save state when syncing after this many GB
 BLOCKSIZE=256                  # Block size in KB
 
@@ -183,10 +183,24 @@ for pool_def in "${POOL_DEFINITIONS[@]}"; do
     count=1
     for drive in "${sorted_drives[@]}"; do
         if [ -d "${drive}" ]; then
+            # Function to join paths without double slashes or unnecessary .
+            join_path() {
+                local base="$1"
+                local rel="$2"
+                local file="$3"
+                
+                if [ "$rel" = "." ] || [ -z "$rel" ]; then
+                    echo "${base}/${file}"
+                else
+                    echo "${base}/${rel}/${file}"
+                fi
+            }
+            
             if [ "${prefix}" = "parity" ]; then
                 echo "[+] Adding parity drive: ${drive}"
                 echo "parity ${drive}/snapraid.parity" >> "${OUTPUT_VAR}"
-                echo "content ${drive}/${RELATIVE_PATH_PER_DRIVE_VAR}/snapraid.content" >> "${OUTPUT_VAR}"
+                content_path=$(join_path "${drive}" "${RELATIVE_PATH_PER_DRIVE_VAR}" "snapraid.content")
+                echo "content ${content_path}" >> "${OUTPUT_VAR}"
             else
                 echo "[+] Adding data drive: ${prefix}${count} ${drive}"
                 echo "data ${prefix}${count} ${drive}" >> "${OUTPUT_VAR}"
@@ -194,7 +208,8 @@ for pool_def in "${POOL_DEFINITIONS[@]}"; do
                 # Add content file for each data drive if CONTENT_FILE_PER_DRIVE is enabled
                 if [ "${CONTENT_FILE_PER_DRIVE_VAR}" = true ]; then
                     echo "[+] Adding content file for ${prefix}${count}"
-                    echo "content ${drive}/${RELATIVE_PATH_PER_DRIVE_VAR}/snapraid.content" >> "${OUTPUT_VAR}"
+                    content_path=$(join_path "${drive}" "${RELATIVE_PATH_PER_DRIVE_VAR}" "snapraid.content")
+                    echo "content ${content_path}" >> "${OUTPUT_VAR}"
                 fi
                 
                 ((count++))
