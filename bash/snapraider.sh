@@ -7,19 +7,23 @@
 FILENAME="output.txt"           # Change to 'snapraid.conf' for production
 DEST_DIR="$(pwd)"               # Change to '/etc' for production
 TMP_SCRIPT="/tmp/snapraid_gen.sh"  # Location for temporary script
-TMUX_SESSION="snapraider"
+TMUX_SESSION="snapraider"       # Name of the tmux session
 
 # Media root directory - base path for all media
 MEDIA_ROOT="/var/lib/emby/media"  # Change this to your media root directory
 
 # Content file settings
 CONTENT_FILE_PER_DRIVE=true     # If true, creates a content file on each data drive for redundancy
-RELATIVE_PATH_PER_DRIVE="."     # Relative path within each drive for content files (e.g., "." for root, "snapraid" for subdirectory)
+RELATIVE_PATH_PER_DRIVE="snapraid"     # Relative path within each drive for content files (e.g., "." for root, "snapraid" for subdirectory)
 PRIMARY_CONTENT_PATH="/var/snapraid.content"  # Path for the primary content file
 
 # Define your pool categories and paths
 # Format: "Category Name:prefix:/path/relative/to/media/root"
 # Each line defines one category, with a friendly name, the prefix for data disks, and subdirectory
+
+# Step 1) Make new category directory in MEDIA_ROOT
+# Step 2) Add at least one subdirectory following HDD_PATTERN naming scheme below.
+
 POOL_DEFINITIONS=(
     "Parity Drives:parity:parity"
     "TV Mount points:tv:tvshows"
@@ -55,7 +59,91 @@ EXCLUSION_PATTERNS=(
 )
 
 # Advanced options
-NOHIDDEN=true                  # Whether to use the nohidden option
+# Setting an option to 'true' will add it to the snapraid.conf file; 'false' will exclude it
+
+# Hidden Files Options
+NOHIDDEN=true                   # When true, adds 'nohidden' to the config, instructing SnapRAID to skip hidden files/directories
+                                # This typically excludes .* files in Linux/Unix and improves performance
+                                # When false, hidden files will be included in parity calculations
+
+# SMART Monitoring Configuration
+ENABLE_SMART_MONITORING=false      # When true, adds SMART monitoring capability via 'smart /path/to/smartctl' command in config
+                                   # This allows SnapRAID to check disk health and report failing drives
+                                   # Requires smartmontools to be installed on your system
+SMART_COMMAND="/usr/sbin/smartctl" # Path to the smartctl executable (only used if SMART_MONITORING=true)
+                                   # This must point to a valid smartctl installation for SMART monitoring to work
+
+# Disk Scrubbing Options
+ENABLE_DISK_SCRUB=false         # When true, adds the 'scrub N' directive to regularly validate your data
+                                # Scrubbing reads the entire array and validates checksums, helping detect silent corruption
+                                # Regular scrubbing is highly recommended for data integrity
+SCRUB_PERCENTAGE=8              # Percentage of the array to scrub (1-100) when running 'snapraid scrub'
+                                # Lower values are faster but less thorough; higher values provide more validation
+                                # Only used if ENABLE_DISK_SCRUB=true
+
+# Access Mode Options
+ENABLE_READ_ONLY=false          # When true, adds 'readonly' option to prevent changes to the array via SnapRAID
+                                # This is a safety feature that prevents accidental modifications
+                                # Useful for arrays that should be considered 'archived' or read-only
+
+# Performance Tuning Options
+ENABLE_CPU_AFFINITY=false       # When true, adds 'cpu N,N,N' option to bind SnapRAID to specific CPU cores
+                                # This can improve performance on multi-core systems by controlling CPU allocation
+                                # Particularly useful on busy systems or when running CPU-intensive tasks
+CPU_CORES="1,2"                 # Comma-separated list of CPU cores to use (only used if CPU_AFFINITY=true)
+                                # Format: "0,1,2" or "0-3" to specify which cores SnapRAID should use
+
+# Data Integrity Options
+ENABLE_HASH_ALGORITHM=false     # When true, adds 'hash ALGORITHM' to use a specific hash algorithm for checksums
+                                # Different algorithms offer different trade-offs between speed and security
+                                # For most home users, the default is sufficient
+HASH_ALGORITHM="murmur3"        # Hash algorithm to use: sha1, sha256, sha3, blake2, xxhash, murmur3
+                                # murmur3 is fastest, sha256/sha3 are most secure (only if HASH_ALGORITHM=true)
+
+# Memory and I/O Management
+ENABLE_IO_CACHE_SIZE=false      # When true, adds 'io-cache SIZE' to configure memory used for I/O operations
+                                # Larger cache may improve performance but uses more system memory
+                                # Default is typically suitable for most systems
+IO_CACHE_SIZE=32                # Size in MB for I/O cache (only used if IO_CACHE_SIZE=true)
+                                # Recommended range: 16-256 depending on available system RAM
+
+# Performance Limiting
+ENABLE_SPEED_LIMIT=false        # When true, adds 'speed-limit N' to restrict SnapRAID's disk bandwidth usage
+                                # Useful to prevent SnapRAID from consuming all I/O bandwidth
+                                # Helpful when running SnapRAID on an active system
+SPEED_LIMIT=100                 # Maximum speed in MB/s (only used if SPEED_LIMIT=true)
+                                # Lower values reduce impact on system performance but increase operation time
+
+# Windows-Specific Features
+ENABLE_WINDOWS_VSS=false        # When true, adds 'vss' option to use Windows Volume Shadow Copy Service
+                                # This allows SnapRAID to safely work with files that are in use
+                                # Windows-only feature - has no effect on Linux/Unix systems
+
+# Storage Allocation
+ENABLE_PREALLOC=false           # When true, adds 'prealloc' to pre-allocate space for parity files
+                                # This can prevent fragmentation and improve performance
+                                # Especially useful for systems with limited free space
+PREALLOC_SIZE=0                 # Size in GB to pre-allocate (0 for full size - recommended)
+                                # Only used if PREALLOC=true
+
+# Specialized Options
+ENABLE_FORCE_ZERO=false         # When true, adds 'force-zero' to zero-fill unused blocks in parity
+                                # Increases security but reduces performance
+                                # Most home users don't need this option
+
+# Logging and Debugging
+ENABLE_EXTRA_LOGGING=false       # When true, adds 'log /path/to/logfile' for detailed operation logging
+                                 # Helps with troubleshooting but creates additional files
+                                 # Mainly useful for debugging issues
+LOG_PATH="/var/log/snapraid.log" # Path for log file if extra logging is enabled
+                                 # Only used if EXTRA_LOGGING=true
+
+# Pool Feature Configuration
+ENABLE_POOL_NAMES=false         # When true, adds 'pool /path' to enable the SnapRAID pool feature
+                                # This creates convenient links to your content in a unified directory
+                                # Makes browsing the array easier, similar to mergerfs/unionfs
+POOL_STORAGE_PATH="/mnt/pool"   # Path where pool links will be created (only if POOL_NAMES=true)
+                                # This should be an empty directory dedicated to pool links
 # ===================== END USER CONFIG SECTION =====================
 
 # Set the full output path
@@ -133,6 +221,27 @@ NOHIDDEN_VAR="__NOHIDDEN_PLACEHOLDER__"
 CONTENT_FILE_PER_DRIVE_VAR="__CONTENT_FILE_PER_DRIVE_PLACEHOLDER__"
 RELATIVE_PATH_PER_DRIVE_VAR="__RELATIVE_PATH_PER_DRIVE_PLACEHOLDER__"
 PRIMARY_CONTENT_PATH_VAR="__PRIMARY_CONTENT_PATH_PLACEHOLDER__"
+ENABLE_SMART_MONITORING_VAR="__ENABLE_SMART_MONITORING_PLACEHOLDER__"
+SMART_COMMAND_VAR="__SMART_COMMAND_PLACEHOLDER__"
+ENABLE_DISK_SCRUB_VAR="__ENABLE_DISK_SCRUB_PLACEHOLDER__"
+SCRUB_PERCENTAGE_VAR="__SCRUB_PERCENTAGE_PLACEHOLDER__"
+ENABLE_READ_ONLY_VAR="__ENABLE_READ_ONLY_PLACEHOLDER__"
+ENABLE_CPU_AFFINITY_VAR="__ENABLE_CPU_AFFINITY_PLACEHOLDER__"
+CPU_CORES_VAR="__CPU_CORES_PLACEHOLDER__"
+ENABLE_HASH_ALGORITHM_VAR="__ENABLE_HASH_ALGORITHM_PLACEHOLDER__"
+HASH_ALGORITHM_VAR="__HASH_ALGORITHM_PLACEHOLDER__"
+ENABLE_IO_CACHE_SIZE_VAR="__ENABLE_IO_CACHE_SIZE_PLACEHOLDER__"
+IO_CACHE_SIZE_VAR="__IO_CACHE_SIZE_PLACEHOLDER__"
+ENABLE_SPEED_LIMIT_VAR="__ENABLE_SPEED_LIMIT_PLACEHOLDER__"
+SPEED_LIMIT_VAR="__SPEED_LIMIT_PLACEHOLDER__"
+ENABLE_WINDOWS_VSS_VAR="__ENABLE_WINDOWS_VSS_PLACEHOLDER__"
+ENABLE_PREALLOC_VAR="__ENABLE_PREALLOC_PLACEHOLDER__"
+PREALLOC_SIZE_VAR="__PREALLOC_SIZE_PLACEHOLDER__"
+ENABLE_FORCE_ZERO_VAR="__ENABLE_FORCE_ZERO_PLACEHOLDER__"
+ENABLE_EXTRA_LOGGING_VAR="__ENABLE_EXTRA_LOGGING_PLACEHOLDER__"
+LOG_PATH_VAR="__LOG_PATH_PLACEHOLDER__"
+ENABLE_POOL_NAMES_VAR="__ENABLE_POOL_NAMES_PLACEHOLDER__"
+POOL_STORAGE_PATH_VAR="__POOL_STORAGE_PATH_PLACEHOLDER__"
 
 # Pool definitions will be inserted here
 declare -a POOL_DEFINITIONS=(__POOL_DEFINITIONS_PLACEHOLDER__)
@@ -283,6 +392,27 @@ sed -i "s|__NOHIDDEN_PLACEHOLDER__|${NOHIDDEN}|g" "$TMP_SCRIPT"
 sed -i "s|__CONTENT_FILE_PER_DRIVE_PLACEHOLDER__|${CONTENT_FILE_PER_DRIVE}|g" "$TMP_SCRIPT"
 sed -i "s|__RELATIVE_PATH_PER_DRIVE_PLACEHOLDER__|${RELATIVE_PATH_PER_DRIVE}|g" "$TMP_SCRIPT"
 sed -i "s|__PRIMARY_CONTENT_PATH_PLACEHOLDER__|${PRIMARY_CONTENT_PATH}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_SMART_MONITORING_PLACEHOLDER__|${ENABLE_SMART_MONITORING}|g" "$TMP_SCRIPT"
+sed -i "s|__SMART_COMMAND_PLACEHOLDER__|${SMART_COMMAND}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_DISK_SCRUB_PLACEHOLDER__|${ENABLE_DISK_SCRUB}|g" "$TMP_SCRIPT"
+sed -i "s|__SCRUB_PERCENTAGE_PLACEHOLDER__|${SCRUB_PERCENTAGE}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_READ_ONLY_PLACEHOLDER__|${ENABLE_READ_ONLY}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_CPU_AFFINITY_PLACEHOLDER__|${ENABLE_CPU_AFFINITY}|g" "$TMP_SCRIPT"
+sed -i "s|__CPU_CORES_PLACEHOLDER__|${CPU_CORES}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_HASH_ALGORITHM_PLACEHOLDER__|${ENABLE_HASH_ALGORITHM}|g" "$TMP_SCRIPT"
+sed -i "s|__HASH_ALGORITHM_PLACEHOLDER__|${HASH_ALGORITHM}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_IO_CACHE_SIZE_PLACEHOLDER__|${ENABLE_IO_CACHE_SIZE}|g" "$TMP_SCRIPT"
+sed -i "s|__IO_CACHE_SIZE_PLACEHOLDER__|${IO_CACHE_SIZE}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_SPEED_LIMIT_PLACEHOLDER__|${ENABLE_SPEED_LIMIT}|g" "$TMP_SCRIPT"
+sed -i "s|__SPEED_LIMIT_PLACEHOLDER__|${SPEED_LIMIT}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_WINDOWS_VSS_PLACEHOLDER__|${ENABLE_WINDOWS_VSS}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_PREALLOC_PLACEHOLDER__|${ENABLE_PREALLOC}|g" "$TMP_SCRIPT"
+sed -i "s|__PREALLOC_SIZE_PLACEHOLDER__|${PREALLOC_SIZE}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_FORCE_ZERO_PLACEHOLDER__|${ENABLE_FORCE_ZERO}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_EXTRA_LOGGING_PLACEHOLDER__|${ENABLE_EXTRA_LOGGING}|g" "$TMP_SCRIPT"
+sed -i "s|__LOG_PATH_PLACEHOLDER__|${LOG_PATH}|g" "$TMP_SCRIPT"
+sed -i "s|__ENABLE_POOL_NAMES_PLACEHOLDER__|${ENABLE_POOL_NAMES}|g" "$TMP_SCRIPT"
+sed -i "s|__POOL_STORAGE_PATH_PLACEHOLDER__|${POOL_STORAGE_PATH}|g" "$TMP_SCRIPT"
 sed -i "s|__POOL_DEFINITIONS_PLACEHOLDER__|${formatted_pools}|g" "$TMP_SCRIPT"
 sed -i "s|__EXCLUSION_PATTERNS_PLACEHOLDER__|${formatted_exclusions}|g" "$TMP_SCRIPT"
 
